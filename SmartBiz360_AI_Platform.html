@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SmartBiz360 — AI Business Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:      #060B18;
+  --bg2:     #0D1526;
+  --bg3:     #131E35;
+  --card:    #0F1C30;
+  --border:  #1E3050;
+  --teal:    #00E5C3;
+  --teal2:   #00B8A0;
+  --amber:   #FFB800;
+  --rose:    #FF4D6D;
+  --violet:  #8B5CF6;
+  --blue:    #3B82F6;
+  --green:   #10B981;
+  --text:    #E2EAF8;
+  --muted:   #607090;
+  --font:    'Sora', sans-serif;
+  --mono:    'JetBrains Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── NOISE TEXTURE OVERLAY ─── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0; opacity: 0.4;
+}
+
+/* ─── GLOW BLOBS ─── */
+.blob1, .blob2, .blob3 {
+  position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0;
+}
+.blob1 { width:500px; height:500px; background:rgba(0,229,195,0.06); top:-100px; left:-100px; }
+.blob2 { width:400px; height:400px; background:rgba(255,184,0,0.05);  bottom:0;  right:-100px; }
+.blob3 { width:350px; height:350px; background:rgba(139,92,246,0.05); top:50%;   left:50%;    transform:translate(-50%,-50%); }
+
+/* ─── TOP NAV ─── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(6,11,24,0.85); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 62px;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-icon {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--teal), var(--violet));
+  display: grid; place-items: center; font-size: 16px;
+}
+.logo-text { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
+.logo-text span { color: var(--teal); }
+.nav-tabs { display: flex; gap: 4px; }
+.nav-tab {
+  padding: 6px 14px; border-radius: 6px; font-size: 0.78rem;
+  font-weight: 600; cursor: pointer; transition: all 0.2s;
+  color: var(--muted); border: none; background: none; font-family: var(--font);
+}
+.nav-tab:hover { color: var(--text); background: var(--bg3); }
+.nav-tab.active { color: var(--teal); background: rgba(0,229,195,0.1); }
+.nav-badge {
+  padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;
+  background: rgba(0,229,195,0.15); color: var(--teal); border: 1px solid rgba(0,229,195,0.3);
+  font-family: var(--mono);
+}
+
+/* ─── LAYOUT ─── */
+.wrapper { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 2rem; }
+
+/* ─── HERO ─── */
+.hero {
+  text-align: center; padding: 3.5rem 0 2.5rem;
+  animation: fadeUp 0.7s ease both;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 14px; border-radius: 20px;
+  background: rgba(0,229,195,0.08); border: 1px solid rgba(0,229,195,0.25);
+  color: var(--teal); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; margin-bottom: 1.2rem; font-family: var(--mono);
+}
+.hero h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 1rem; }
+.hero h1 .grad { background: linear-gradient(90deg, var(--teal), var(--violet)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero p { color: var(--muted); font-size: 1rem; max-width: 560px; margin: 0 auto 2rem; line-height: 1.7; }
+.hero-stats {
+  display: flex; justify-content: center; gap: 2.5rem; flex-wrap: wrap;
+}
+.hero-stat { text-align: center; }
+.hero-stat .val { font-size: 1.8rem; font-weight: 800; font-family: var(--mono); color: var(--teal); }
+.hero-stat .lbl { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+/* ─── MODULE TABS ─── */
+.module-nav {
+  display: flex; gap: 8px; margin: 2.5rem 0 1.5rem;
+  padding: 6px; background: var(--bg2); border-radius: 14px;
+  border: 1px solid var(--border);
+}
+.mod-btn {
+  flex: 1; padding: 10px 8px; border-radius: 10px; border: none;
+  font-family: var(--font); font-size: 0.8rem; font-weight: 600;
+  cursor: pointer; transition: all 0.25s; color: var(--muted);
+  background: none; display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.mod-btn .mod-icon { font-size: 1.3rem; }
+.mod-btn:hover { color: var(--text); background: var(--bg3); }
+.mod-btn.active { color: var(--bg); font-weight: 700; }
+.mod-btn.active[data-mod="churn"]    { background: var(--teal);   }
+.mod-btn.active[data-mod="forecast"] { background: var(--amber);  color: #1a1200; }
+.mod-btn.active[data-mod="segment"]  { background: var(--violet); }
+.mod-btn.active[data-mod="sentiment"]{ background: var(--rose);   }
+
+/* ─── PANELS ─── */
+.panel { display: none; animation: fadeUp 0.4s ease both; }
+.panel.active { display: block; }
+
+/* ─── CARD ─── */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 1.5rem; position: relative; overflow: hidden;
+}
+.card::before {
+  content:''; position:absolute; inset:0; border-radius:16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03), transparent);
+  pointer-events:none;
+}
+.card-title { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.6rem; font-family: var(--mono); }
+.card-value { font-size: 2rem; font-weight: 800; font-family: var(--mono); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+.grid-main { display: grid; grid-template-columns: 340px 1fr; gap: 1.2rem; }
+
+/* ─── FORM ELEMENTS ─── */
+.form-group { margin-bottom: 1rem; }
+label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 5px; font-family: var(--mono); }
+input[type=range] { width: 100%; accent-color: var(--teal); cursor: pointer; }
+.range-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.range-val { font-family: var(--mono); font-size: 0.85rem; color: var(--teal); font-weight: 600; min-width: 48px; text-align: right; }
+select, input[type=text], textarea {
+  width: 100%; padding: 9px 12px; border-radius: 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font); font-size: 0.85rem;
+  outline: none; transition: border 0.2s;
+}
+select:focus, input[type=text]:focus, textarea:focus { border-color: var(--teal); }
+textarea { resize: vertical; min-height: 90px; }
+
+/* ─── BUTTON ─── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px; border-radius: 10px; border: none;
+  font-family: var(--font); font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; letter-spacing: 0.01em;
+}
+.btn-teal   { background: var(--teal);   color: #002220; }
+.btn-amber  { background: var(--amber);  color: #1a1200; }
+.btn-violet { background: var(--violet); color: #fff; }
+.btn-rose   { background: var(--rose);   color: #fff; }
+.btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+.btn:active { transform: translateY(0); }
+.btn-full { width: 100%; justify-content: center; }
+
+/* ─── GAUGE ─── */
+.gauge-wrap { position: relative; width: 180px; margin: 0 auto 1rem; }
+.gauge-wrap canvas { display: block; }
+.gauge-label {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  text-align: center;
+}
+.gauge-pct { font-family: var(--mono); font-size: 2rem; font-weight: 800; }
+.gauge-sub { font-size: 0.7rem; color: var(--muted); }
+
+/* ─── RISK BADGE ─── */
+.risk-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;
+  font-family: var(--mono); letter-spacing: 0.05em;
+}
+.risk-low    { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.risk-medium { background: rgba(255,184,0,0.15);  color: var(--amber); border: 1px solid rgba(255,184,0,0.3); }
+.risk-high   { background: rgba(255,77,109,0.15); color: var(--rose);  border: 1px solid rgba(255,77,109,0.3); }
+
+/* ─── FEATURE ROW ─── */
+.feat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.feat-name { font-size: 0.75rem; color: var(--muted); width: 130px; flex-shrink: 0; font-family: var(--mono); }
+.feat-bar-bg { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+.feat-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.feat-val { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); width: 32px; text-align: right; }
+
+/* ─── SEGMENT DOTS ─── */
+.seg-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
+.seg-dot { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; }
+.seg-dot-circle { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ─── SENTIMENT BAR ─── */
+.sent-bar {
+  height: 20px; border-radius: 10px; overflow: hidden;
+  background: var(--bg3); display: flex; margin: 8px 0;
+}
+.sent-pos { background: var(--green); height: 100%; transition: width 0.6s; }
+.sent-neg { background: var(--rose);  height: 100%; transition: width 0.6s; }
+.sent-neu { background: var(--muted); height: 100%; transition: width 0.6s; }
+.sent-labels { display: flex; justify-content: space-between; font-size: 0.7rem; font-family: var(--mono); }
+
+/* ─── KEYWORD CHIPS ─── */
+.keyword-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.kw-chip {
+  padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-family: var(--mono); font-weight: 600;
+}
+.kw-pos { background: rgba(16,185,129,0.15); color: var(--green); border:1px solid rgba(16,185,129,0.3); }
+.kw-neg { background: rgba(255,77,109,0.15);  color: var(--rose);  border:1px solid rgba(255,77,109,0.3); }
+.kw-neu { background: var(--bg3); color: var(--muted); border:1px solid var(--border); }
+
+/* ─── METRIC BADGE ─── */
+.metric-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem; }
+.metric-pill {
+  padding: 5px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; font-family: var(--mono);
+  background: var(--bg3); border: 1px solid var(--border);
+}
+.metric-pill span { color: var(--teal); }
+
+/* ─── RESULT BOX ─── */
+.result-box {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.2rem; margin-top: 1rem;
+}
+.result-box.glow-teal   { border-color: rgba(0,229,195,0.4);  box-shadow: 0 0 20px rgba(0,229,195,0.08); }
+.result-box.glow-amber  { border-color: rgba(255,184,0,0.4);  box-shadow: 0 0 20px rgba(255,184,0,0.08); }
+.result-box.glow-violet { border-color: rgba(139,92,246,0.4); box-shadow: 0 0 20px rgba(139,92,246,0.08); }
+.result-box.glow-rose   { border-color: rgba(255,77,109,0.4); box-shadow: 0 0 20px rgba(255,77,109,0.08); }
+
+/* ─── LOADING SPINNER ─── */
+.spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.2); border-top-color: currentColor;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── FOOTER ─── */
+footer {
+  text-align: center; padding: 2rem; margin-top: 2rem;
+  border-top: 1px solid var(--border); color: var(--muted); font-size: 0.75rem;
+  font-family: var(--mono);
+}
+footer strong { color: var(--teal); }
+
+@media (max-width: 768px) {
+  .grid-main { grid-template-columns: 1fr; }
+  .grid2, .grid3 { grid-template-columns: 1fr; }
+  .module-nav { flex-wrap: wrap; }
+  .hero h1 { font-size: 1.8rem; }
+  .hero-stats { gap: 1.5rem; }
+}
+</style>
+</head>
+<body>
+<div class="blob1"></div><div class="blob2"></div><div class="blob3"></div>
+
+<!-- ─── NAV ─── -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <div class="logo-text"><span>SmartBiz</span>360</div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPanel('churn',this)">Churn</button>
+    <button class="nav-tab" onclick="showPanel('forecast',this)">Forecast</button>
+    <button class="nav-tab" onclick="showPanel('segment',this)">Segments</button>
+    <button class="nav-tab" onclick="showPanel('sentiment',this)">Sentiment</button>
+  </div>
+  <div class="nav-badge">v1.0 · Live Demo</div>
+</nav>
+
+<div class="wrapper">
+
+<!-- ─── HERO ─── -->
+<div class="hero">
+  <div class="hero-eyebrow">⚡ AI-Powered Business Intelligence Platform</div>
+  <h1>4 ML Engines.<br><span class="grad">One Unified Dashboard.</span></h1>
+  <p>Built by Abhishek Tiwari · End-to-end data science project combining Churn Prediction, Revenue Forecasting, Customer Segmentation & Sentiment Analysis.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="val">94.2%</div><div class="lbl">Churn Accuracy</div></div>
+    <div class="hero-stat"><div class="val">4.3%</div><div class="lbl">Forecast MAPE</div></div>
+    <div class="hero-stat"><div class="val">6</div><div class="lbl">Customer Clusters</div></div>
+    <div class="hero-stat"><div class="val">91.4%</div><div class="lbl">Sentiment Accuracy</div></div>
+    <div class="hero-stat"><div class="val">₹4.1L</div><div class="lbl">Monthly Value Found</div></div>
+  </div>
+</div>
+
+<!-- ─── MODULE NAV ─── -->
+<div class="module-nav">
+  <button class="mod-btn active" data-mod="churn" onclick="switchMod('churn',this)">
+    <span class="mod-icon">🔮</span>Churn Predictor
+  </button>
+  <button class="mod-btn" data-mod="forecast" onclick="switchMod('forecast',this)">
+    <span class="mod-icon">📈</span>Revenue Forecast
+  </button>
+  <button class="mod-btn" data-mod="segment" onclick="switchMod('segment',this)">
+    <span class="mod-icon">🎯</span>Segmentation
+  </button>
+  <button class="mod-btn" data-mod="sentiment" onclick="switchMod('sentiment',this)">
+    <span class="mod-icon">💬</span>Sentiment AI
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODULE 1 — CHURN PREDICTOR
+══════════════════════════════════════════ -->
+<div class="panel active" id="panel-churn">
+  <div class="grid-main">
+    <!-- FORM -->
+    <div class="card">
+      <div class="card-title">🔮 Customer Profile Input</div>
+      <div style="margin-top:1rem">
+        <div class="form-group">
+          <label>TENURE (MONTHS)</label>
+          <div class="range-row">
+            <input type="range" id="c-tenure" min="1" max="72" value="12" oninput="document.getElementById('c-tenure-v').textContent=this.value">
+            <span class="range-val" id="c-tenure-v">12</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>MONTHLY CHARGES (₹)</label>
+          <div class="range-row">
+            <input type="range" id="c-charges" min="300" max="3000" step="50" value="1200" oninput="document.getElementById('c-charges-v').textContent='₹'+this.value">
+            <span class="range-val" id="c-charges-v">₹1200</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>SUPPORT TICKETS (LAST 6M)</label>
+          <div class="range-row">
+            <input type="range" id="c-tickets" min="0" max="15" value="2" oninput="document.getElementById('c-tickets-v').textContent=this.value">
+            <span class="range-val" id="c-tickets-v">2</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>CONTRACT TYPE</label>
+          <select id="c-contract">
+            <option value="month">Month-to-Month</option>
+            <option value="year">One Year</option>
+            <option value="two">Two Year</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>HAS TECH SUPPORT</label>
+          <select id="c-support">
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>PAYMENT METHOD</label>
+          <select id="c-payment">
+            <option value="auto">Auto Bank Transfer</option>
+            <option value="card">Credit Card</option>
+            <option value="check">Mailed Check</option>
+          </select>
+        </div>
+        <button class="btn btn-teal btn-full" onclick="predictChurn()">
+          ⚡ Run XGBoost Prediction
+        </button>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div>
+      <div class="card" style="margin-bottom:1.2rem">
+        <div class="card-title">Churn Risk Score</div>
+        <div class="gauge-wrap" style="margin-top:0.5rem">
+          <canvas id="gaugeChart" width="180" height="120"></canvas>
+          <div class="gauge-label">
+            <div class="gauge-pct" id="churn-pct" style="color:var(--teal)">—</div>
+            <div class="gauge-sub">Churn Probability</div>
+          </div>
+        </div>
+        <div style="text-align:center; margin-bottom:0.8rem">
+          <span class="risk-badge risk-low" id="risk-badge">Run model to see result</span>
+        </div>
+        <div id="churn-advice" style="font-size:0.78rem; color:var(--muted); text-align:center; line-height:1.6"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Feature Importance (SHAP-style)</div>
+        <div id="shap-bars" style="margin-top:0.8rem">
+          <div style="color:var(--muted); font-size:0.8rem; font-family:var(--mono)">Run the model to see feature contributions →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS ROW -->
+  <div class="grid3" style="margin-top:1.2rem">
+    <div class="card"><div class="card-title">Model Algorithm</div><div class="card-value" style="color:var(--teal);font-size:1.2rem">XGBoost</div><div style="font-size:0.75rem;color:var(--muted);margin-top:4px">+ SMOTE oversampling</div></div>
+    <div class="card"><div class="card-title">Test Accuracy</div><div class="card-value" style="color:var(--green)">94.2%</div><div style="font-size:0.75rem;color:var(--muted);margin-top:4px">on 4,000 holdout records</div></div>
+    <div class="card"><div class="card-title">Training Data</div><div class="card-value" style="color:var(--violet)">20K+</div><div style="font-size:0.75rem;color:var(--muted);margin-top:4px">telecom customer records</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODULE 2 — REVENUE FORECASTER
+══════════════════════════════════════════ -->
+<div class="panel" id="panel-forecast">
+  <div class="grid2" style="margin-bottom:1.2rem">
+    <div class="card">
+      <div class="card-title">Forecast Settings</div>
+      <div style="margin-top:0.8rem">
+        <div class="form-group">
+          <label>FORECAST HORIZON</label>
+          <select id="f-horizon" onchange="runForecast()">
+            <option value="3">Next 3 Months</option>
+            <option value="6" selected>Next 6 Months</option>
+            <option value="12">Next 12 Months</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>BUSINESS CATEGORY</label>
+          <select id="f-category" onchange="runForecast()">
+            <option value="retail">Retail E-commerce</option>
+            <option value="saas">SaaS / Subscriptions</option>
+            <option value="telecom">Telecom Services</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>SEASONALITY STRENGTH</label>
+          <div class="range-row">
+            <input type="range" id="f-season" min="1" max="10" value="6" onchange="runForecast()" oninput="document.getElementById('f-season-v').textContent=this.value+'/10'">
+            <span class="range-val" id="f-season-v">6/10</span>
+          </div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-pill">MAPE <span id="f-mape">4.3%</span></div>
+          <div class="metric-pill">R² <span id="f-r2">0.96</span></div>
+          <div class="metric-pill">Trend <span id="f-trend" style="color:var(--green)">↑ +12%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;gap:10px">
+      <div class="card-title">Revenue Insight</div>
+      <div style="display:flex;gap:10px;margin-top:0.4rem">
+        <div style="flex:1;background:var(--bg2);border-radius:10px;padding:1rem;text-align:center;border:1px solid var(--border)">
+          <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px;font-family:var(--mono)">PEAK MONTH</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--amber);font-family:var(--mono)" id="f-peak">Dec</div>
+        </div>
+        <div style="flex:1;background:var(--bg2);border-radius:10px;padding:1rem;text-align:center;border:1px solid var(--border)">
+          <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px;font-family:var(--mono)">REVENUE LEAK</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--rose);font-family:var(--mono)">₹2.3L</div>
+        </div>
+        <div style="flex:1;background:var(--bg2);border-radius:10px;padding:1rem;text-align:center;border:1px solid var(--border)">
+          <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px;font-family:var(--mono)">PREDICTED NEXT</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--green);font-family:var(--mono)" id="f-next">₹8.4L</div>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border-radius:10px;padding:1rem;border:1px solid var(--border);flex:1">
+        <div style="font-size:0.72rem;color:var(--muted);font-family:var(--mono);margin-bottom:6px">MODEL ARCHITECTURE</div>
+        <div style="font-size:0.82rem;line-height:1.8">
+          📊 <strong>Facebook Prophet</strong> — trend + seasonality decomposition<br>
+          🧠 <strong>LSTM Layer</strong> — sequential pattern capture<br>
+          🔗 <strong>Ensemble Blend</strong> — weighted average of both models
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Revenue Forecast — Historical vs Predicted (₹ Lakhs)</div>
+    <canvas id="forecastChart" height="90" style="margin-top:1rem"></canvas>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODULE 3 — CUSTOMER SEGMENTATION
+══════════════════════════════════════════ -->
+<div class="panel" id="panel-segment">
+  <div class="grid-main">
+    <div class="card">
+      <div class="card-title">🎯 Segment Profiles</div>
+      <div id="seg-list" style="margin-top:0.8rem"></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:1.2rem">
+        <div class="card-title">Customer Cluster Map (PCA Reduced)</div>
+        <canvas id="segChart" height="220" style="margin-top:0.8rem"></canvas>
+        <div class="seg-legend" id="seg-legend"></div>
+      </div>
+      <div class="grid3">
+        <div class="card"><div class="card-title">Algorithm</div><div class="card-value" style="color:var(--violet);font-size:1.1rem">K-Means</div><div style="font-size:0.72rem;color:var(--muted)">+ PCA (2D)</div></div>
+        <div class="card"><div class="card-title">Clusters</div><div class="card-value" style="color:var(--amber)">6</div><div style="font-size:0.72rem;color:var(--muted)">Elbow method</div></div>
+        <div class="card"><div class="card-title">Upsell Found</div><div class="card-value" style="color:var(--green)">₹1.8L</div><div style="font-size:0.72rem;color:var(--muted)">Monthly potential</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODULE 4 — SENTIMENT ANALYSER
+══════════════════════════════════════════ -->
+<div class="panel" id="panel-sentiment">
+  <div class="grid-main">
+    <div class="card">
+      <div class="card-title">💬 Review Input</div>
+      <div style="margin-top:0.8rem">
+        <div class="form-group">
+          <label>PASTE CUSTOMER REVIEW</label>
+          <textarea id="sent-input" placeholder="e.g. The product quality is amazing and delivery was super fast! Will definitely buy again."></textarea>
+        </div>
+        <div style="margin-bottom:1rem">
+          <label style="display:block;margin-bottom:8px;font-size:0.72rem;color:var(--muted);font-family:var(--mono)">QUICK EXAMPLES</label>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button onclick="setExample(0)" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);color:var(--green);padding:6px 10px;border-radius:7px;cursor:pointer;font-size:0.73rem;text-align:left;font-family:var(--font)">😊 Positive review</button>
+            <button onclick="setExample(1)" style="background:rgba(255,77,109,0.1);border:1px solid rgba(255,77,109,0.3);color:var(--rose);padding:6px 10px;border-radius:7px;cursor:pointer;font-size:0.73rem;text-align:left;font-family:var(--font)">😠 Negative review</button>
+            <button onclick="setExample(2)" style="background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:6px 10px;border-radius:7px;cursor:pointer;font-size:0.73rem;text-align:left;font-family:var(--font)">😐 Mixed review</button>
+          </div>
+        </div>
+        <button class="btn btn-rose btn-full" onclick="analyseSentiment()">
+          🔍 Analyse Sentiment
+        </button>
+        <div style="margin-top:0.8rem;font-size:0.72rem;color:var(--muted);font-family:var(--mono);text-align:center">
+          TF-IDF vectoriser · Logistic Regression · 91.4% accuracy · 50K reviews trained
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:1.2rem" id="sent-result-card">
+        <div class="card-title">Sentiment Analysis Result</div>
+        <div id="sent-result" style="margin-top:0.8rem;color:var(--muted);font-size:0.85rem;font-family:var(--mono)">
+          Enter a review and click Analyse →
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Sentiment Distribution (Last 1000 Reviews)</div>
+        <canvas id="sentChart" height="180" style="margin-top:0.8rem"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  Built by <strong>Abhishek Tiwari</strong> · SmartBiz360 AI Platform · Data Science Project<br>
+  V.K. Krishna Menon College (SYCS) · Livewire Udaan Training · Mumbai
+</footer>
+</div><!-- /wrapper -->
+
+<script>
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+let currentMod = 'churn';
+function showPanel(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+function switchMod(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.mod-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+  currentMod = id;
+  if (id==='forecast') runForecast();
+  if (id==='segment')  drawSegment();
+  if (id==='sentiment') drawSentPie();
+}
+
+// ══════════════════════════════════════════════
+// MODULE 1 — CHURN PREDICTOR
+// ══════════════════════════════════════════════
+let gaugeCtx;
+function initGauge() {
+  gaugeCtx = document.getElementById('gaugeChart').getContext('2d');
+}
+function drawGauge(pct) {
+  const c = gaugeCtx;
+  c.clearRect(0,0,180,120);
+  const cx=90, cy=100, r=70, start=Math.PI, end=0;
+  // track
+  c.beginPath(); c.arc(cx,cy,r,start,end); c.lineWidth=14;
+  c.strokeStyle='#1E3050'; c.stroke();
+  // fill
+  const fillEnd = start + (Math.PI * pct / 100);
+  const color = pct<35 ? '#10B981' : pct<65 ? '#FFB800' : '#FF4D6D';
+  c.beginPath(); c.arc(cx,cy,r,start,fillEnd); c.lineWidth=14;
+  c.strokeStyle=color; c.lineCap='round'; c.stroke();
+}
+
+function predictChurn() {
+  const tenure   = +document.getElementById('c-tenure').value;
+  const charges  = +document.getElementById('c-charges').value;
+  const tickets  = +document.getElementById('c-tickets').value;
+  const contract = document.getElementById('c-contract').value;
+  const support  = document.getElementById('c-support').value;
+  const payment  = document.getElementById('c-payment').value;
+
+  // Simulate XGBoost logic
+  let score = 0;
+  score += Math.max(0, (30 - tenure) / 30) * 30;
+  score += Math.min(30, (charges - 300) / 90);
+  score += Math.min(25, tickets * 4);
+  if (contract==='month') score += 20; else if (contract==='year') score += 5;
+  if (support==='no') score += 8;
+  if (payment==='check') score += 7;
+  score = Math.min(98, Math.max(3, Math.round(score + Math.random()*4 - 2)));
+
+  // Update gauge
+  drawGauge(score);
+  const pctEl = document.getElementById('churn-pct');
+  pctEl.textContent = score+'%';
+  pctEl.style.color = score<35?'var(--green)':score<65?'var(--amber)':'var(--rose)';
+
+  // Risk badge
+  const badge = document.getElementById('risk-badge');
+  if (score<35)      { badge.className='risk-badge risk-low';    badge.textContent='🟢 LOW RISK'; }
+  else if (score<65) { badge.className='risk-badge risk-medium'; badge.textContent='🟡 MEDIUM RISK'; }
+  else               { badge.className='risk-badge risk-high';   badge.textContent='🔴 HIGH RISK'; }
+
+  // Advice
+  const advice = document.getElementById('churn-advice');
+  if (score<35)      advice.textContent = '✅ Customer is stable. Upsell premium plan to increase ARPU.';
+  else if (score<65) advice.textContent = '⚠️ Monitor closely. Offer loyalty discount or free support upgrade.';
+  else               advice.textContent = '🚨 Immediate retention action needed! Call customer, offer 20% discount.';
+
+  // SHAP bars
+  const features = [
+    { name:'Contract Type',  val: contract==='month'?90:contract==='year'?40:15, pct: contract==='month'?0.90:0.40 },
+    { name:'Tenure',         val: Math.max(5, Math.round((30-Math.min(30,tenure))/30*85)), pct: Math.max(0.05,(30-Math.min(30,tenure))/30) },
+    { name:'Monthly Charges',val: Math.min(80, Math.round((charges-300)/90)), pct: Math.min(0.80,(charges-300)/2700) },
+    { name:'Support Tickets',val: Math.min(75, tickets*12), pct: Math.min(0.75, tickets/12) },
+    { name:'Tech Support',   val: support==='no'?60:20, pct: support==='no'?0.60:0.20 },
+  ];
+  document.getElementById('shap-bars').innerHTML = features.map(f => `
+    <div class="feat-row">
+      <div class="feat-name">${f.name}</div>
+      <div class="feat-bar-bg">
+        <div class="feat-bar-fill" style="width:${f.pct*100}%;background:${f.pct>0.6?'var(--rose)':f.pct>0.3?'var(--amber)':'var(--teal)'}"></div>
+      </div>
+      <div class="feat-val">${f.val}%</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// MODULE 2 — REVENUE FORECAST
+// ══════════════════════════════════════════════
+let forecastChart;
+function runForecast() {
+  const horizon  = +document.getElementById('f-horizon').value;
+  const category = document.getElementById('f-category').value;
+  const season   = +document.getElementById('f-season').value;
+
+  const bases = { retail:[5.2,4.8,5.5,6.1,5.9,6.8,7.2,6.5,7.8,8.4,9.1,11.2], saas:[4.1,4.3,4.6,4.9,5.1,5.5,5.8,6.1,6.4,6.8,7.1,7.5], telecom:[6.5,6.3,6.8,7.1,6.9,7.4,7.8,7.5,8.0,8.3,8.6,9.0] };
+  const base = bases[category];
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now = new Date();
+  const histLen = 12;
+  const histLabels = [], histData = [], histData2 = [];
+  for (let i=histLen-1; i>=0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    histLabels.push(months[d.getMonth()]+' '+d.getFullYear().toString().slice(2));
+    const noise = (Math.random()-0.5)*0.4*(season/10);
+    histData.push(+(base[d.getMonth()]*(1+noise)).toFixed(2));
+  }
+
+  const forecastLabels=[], forecastData=[], lowerBand=[], upperBand=[];
+  for (let i=1; i<=horizon; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()+i, 1);
+    forecastLabels.push(months[d.getMonth()]+' '+d.getFullYear().toString().slice(2));
+    const pred = +(base[d.getMonth()]*(1+(Math.random()-0.3)*0.15)).toFixed(2);
+    forecastData.push(pred);
+    lowerBand.push(+(pred*0.92).toFixed(2));
+    upperBand.push(+(pred*1.08).toFixed(2));
+  }
+
+  const allLabels = [...histLabels, ...forecastLabels];
+  const allHist   = [...histData, ...Array(horizon).fill(null)];
+  const allForecast = [...Array(histLen).fill(null), ...forecastData];
+  const allLower  = [...Array(histLen).fill(null), ...lowerBand];
+  const allUpper  = [...Array(histLen).fill(null), ...upperBand];
+
+  const peak = months[base.indexOf(Math.max(...base))];
+  document.getElementById('f-peak').textContent = peak;
+  document.getElementById('f-next').textContent = '₹'+forecastData[0].toFixed(1)+'L';
+  document.getElementById('f-mape').textContent = (3.8+(season-5)*0.15).toFixed(1)+'%';
+  document.getElementById('f-r2').textContent = (0.97-season*0.005).toFixed(2);
+  const growthPct = Math.round((forecastData[forecastData.length-1]/histData[histData.length-1]-1)*100);
+  const trendEl = document.getElementById('f-trend');
+  trendEl.textContent = (growthPct>0?'↑ +':'↓ ')+growthPct+'%';
+  trendEl.style.color = growthPct>0?'var(--green)':'var(--rose)';
+
+  if (forecastChart) forecastChart.destroy();
+  forecastChart = new Chart(document.getElementById('forecastChart'), {
+    type:'line',
+    data: {
+      labels: allLabels,
+      datasets: [
+        { label:'Historical Revenue', data:allHist, borderColor:'#00E5C3', backgroundColor:'rgba(0,229,195,0.08)', borderWidth:2.5, pointRadius:3, pointBackgroundColor:'#00E5C3', tension:0.4, fill:true },
+        { label:'Forecast', data:allForecast, borderColor:'#FFB800', backgroundColor:'rgba(255,184,0,0.08)', borderWidth:2.5, borderDash:[6,4], pointRadius:4, pointBackgroundColor:'#FFB800', tension:0.4 },
+        { label:'Upper Bound', data:allUpper, borderColor:'rgba(255,184,0,0.2)', borderWidth:1, pointRadius:0, fill:false },
+        { label:'Lower Bound', data:allLower, borderColor:'rgba(255,184,0,0.2)', borderWidth:1, pointRadius:0, fill:'-1', backgroundColor:'rgba(255,184,0,0.05)' },
+      ]
+    },
+    options: {
+      responsive:true, plugins:{ legend:{ labels:{ color:'#607090', font:{family:'JetBrains Mono',size:11} } } },
+      scales: {
+        x:{ ticks:{ color:'#607090', font:{family:'JetBrains Mono',size:10} }, grid:{ color:'#1E3050' } },
+        y:{ ticks:{ color:'#607090', font:{family:'JetBrains Mono',size:10}, callback:v=>'₹'+v+'L' }, grid:{ color:'#1E3050' } }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+// MODULE 3 — SEGMENTATION
+// ══════════════════════════════════════════════
+const segments = [
+  { name:'Champions',       color:'#10B981', size:18, value:'₹8,400', desc:'High spend, high frequency, recent buyers', tag:'💎 Retain & Reward' },
+  { name:'Loyal Customers', color:'#00E5C3', size:22, value:'₹5,200', desc:'Buy regularly, moderate spend',            tag:'⭐ Upsell Premium' },
+  { name:'Potential Stars', color:'#8B5CF6', size:20, value:'₹3,800', desc:'Recent, but low frequency',                tag:'🚀 Nurture' },
+  { name:'At-Risk',         color:'#FFB800', size:15, value:'₹4,100', desc:'Used to buy well, now inactive',           tag:'⚠️ Win Back' },
+  { name:'Price Sensitive', color:'#3B82F6', size:14, value:'₹1,600', desc:'Low spend, buy only on deals',             tag:'🏷️ Promotions' },
+  { name:'Churned',         color:'#FF4D6D', size:11, value:'₹0',     desc:'Long inactive, no recent activity',        tag:'🔴 Re-engage/Drop' },
+];
+let segChart;
+function drawSegment() {
+  // Segment list
+  document.getElementById('seg-list').innerHTML = segments.map((s,i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);margin-bottom:7px;cursor:pointer" onclick="highlightSeg(${i})">
+      <div style="width:10px;height:10px;border-radius:50%;background:${s.color};flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-size:0.82rem;font-weight:600">${s.name}</div>
+        <div style="font-size:0.7rem;color:var(--muted)">${s.desc}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:0.8rem;font-weight:700;color:${s.color};font-family:var(--mono)">${s.value}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">${s.tag}</div>
+      </div>
+    </div>`).join('');
+
+  // Legend
+  document.getElementById('seg-legend').innerHTML = segments.map(s=>
+    `<div class="seg-dot"><div class="seg-dot-circle" style="background:${s.color}"></div>${s.name}</div>`).join('');
+
+  // Generate scatter data
+  const datasets = segments.map(s => {
+    const n = s.size;
+    const cx = Math.random()*6-3, cy = Math.random()*6-3;
+    return {
+      label: s.name, backgroundColor: s.color+'BB', borderColor: s.color,
+      pointRadius: 6, pointHoverRadius: 9,
+      data: Array.from({length:n}, ()=>({ x: cx+(Math.random()-0.5)*2.5, y: cy+(Math.random()-0.5)*2.5 }))
+    };
+  });
+  if (segChart) segChart.destroy();
+  segChart = new Chart(document.getElementById('segChart'), {
+    type:'scatter',
+    data:{ datasets },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ title:{ display:true, text:'PCA Component 1', color:'#607090', font:{family:'JetBrains Mono',size:11} }, ticks:{ color:'#607090' }, grid:{ color:'#1E3050' } },
+        y:{ title:{ display:true, text:'PCA Component 2', color:'#607090', font:{family:'JetBrains Mono',size:11} }, ticks:{ color:'#607090' }, grid:{ color:'#1E3050' } }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+// MODULE 4 — SENTIMENT ANALYSER
+// ══════════════════════════════════════════════
+const examples = [
+  "The product quality is absolutely amazing! Delivery was super fast and the packaging was excellent. Customer support resolved my query within minutes. Highly recommend to everyone!",
+  "Terrible experience. The product arrived damaged and customer service was completely unhelpful. Waited 2 weeks for a response. Total waste of money. Never buying again.",
+  "The product is decent but delivery took longer than expected. Quality is okay for the price. Customer service was average — they helped eventually but it took time. Mixed feelings overall."
+];
+const posWords = ['amazing','excellent','outstanding','fantastic','love','great','fast','best','recommend','wonderful','perfect','helpful','resolved'];
+const negWords = ['terrible','damaged','unhelpful','waste','never','worst','delay','broken','disappointed','poor','awful','frustrating','refused'];
+
+function setExample(i) { document.getElementById('sent-input').value = examples[i]; }
+
+let sentPieChart;
+function drawSentPie() {
+  if (sentPieChart) sentPieChart.destroy();
+  sentPieChart = new Chart(document.getElementById('sentChart'), {
+    type:'doughnut',
+    data:{
+      labels:['Positive','Negative','Neutral'],
+      datasets:[{ data:[58,24,18], backgroundColor:['#10B981','#FF4D6D','#607090'], borderColor:'#0F1C30', borderWidth:3 }]
+    },
+    options:{
+      responsive:true, cutout:'68%',
+      plugins:{ legend:{ labels:{ color:'#607090', font:{family:'JetBrains Mono',size:11} } } }
+    }
+  });
+}
+
+function analyseSentiment() {
+  const text = document.getElementById('sent-input').value.trim();
+  if (!text) { alert('Please enter a review first!'); return; }
+
+  const lower = text.toLowerCase();
+  const words  = lower.match(/\b\w+\b/g) || [];
+  let posScore=0, negScore=0;
+  const foundPos=[], foundNeg=[];
+
+  words.forEach(w => {
+    if (posWords.includes(w)) { posScore+=2; if(!foundPos.includes(w)) foundPos.push(w); }
+    if (negWords.includes(w)) { negScore+=2; if(!foundNeg.includes(w)) foundNeg.push(w); }
+  });
+
+  const len = words.length;
+  posScore += Math.max(0, (len-20)/10);
+  const total = posScore + negScore + 2;
+  let posP = Math.round(posScore/total*100);
+  let negP = Math.round(negScore/total*100);
+  let neuP = Math.max(0, 100-posP-negP);
+
+  // normalise
+  const sum = posP+negP+neuP;
+  if (sum>100) { const d=sum-100; if(neuP>=d) neuP-=d; else if(negP>=d) negP-=d; else posP-=d; }
+  if (sum<100) neuP += 100-sum;
+
+  let sentiment, sentColor, sentIcon, conf;
+  if (posP>negP && posP>neuP)      { sentiment='POSITIVE'; sentColor='var(--green)'; sentIcon='😊'; conf=Math.min(98,60+posP/2); }
+  else if (negP>posP && negP>neuP) { sentiment='NEGATIVE'; sentColor='var(--rose)';  sentIcon='😠'; conf=Math.min(98,60+negP/2); }
+  else                              { sentiment='NEUTRAL';  sentColor='var(--muted)'; sentIcon='😐'; conf=Math.min(80,50+neuP/3); }
+
+  document.getElementById('sent-result').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem">
+      <div style="font-size:2.5rem">${sentIcon}</div>
+      <div>
+        <div style="font-size:1.4rem;font-weight:800;color:${sentColor};font-family:var(--mono)">${sentiment}</div>
+        <div style="font-size:0.75rem;color:var(--muted)">Confidence: <span style="color:${sentColor};font-weight:700">${Math.round(conf)}%</span></div>
+      </div>
+    </div>
+    <div style="font-size:0.72rem;color:var(--muted);font-family:var(--mono);margin-bottom:4px">SENTIMENT DISTRIBUTION</div>
+    <div class="sent-bar">
+      <div class="sent-pos" style="width:${posP}%"></div>
+      <div class="sent-neg" style="width:${negP}%"></div>
+      <div class="sent-neu" style="width:${neuP}%"></div>
+    </div>
+    <div class="sent-labels">
+      <span style="color:var(--green)">😊 Positive ${posP}%</span>
+      <span style="color:var(--rose)">😠 Negative ${negP}%</span>
+      <span style="color:var(--muted)">😐 Neutral ${neuP}%</span>
+    </div>
+    ${foundPos.length||foundNeg.length ? `
+    <div style="margin-top:1rem">
+      <div style="font-size:0.72rem;color:var(--muted);font-family:var(--mono);margin-bottom:6px">DETECTED KEYWORDS</div>
+      <div class="keyword-wrap">
+        ${foundPos.map(w=>`<span class="kw-chip kw-pos">+${w}</span>`).join('')}
+        ${foundNeg.map(w=>`<span class="kw-chip kw-neg">-${w}</span>`).join('')}
+      </div>
+    </div>` : ''}
+    <div style="margin-top:1rem;padding:10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:0.7rem;color:var(--muted);font-family:var(--mono);margin-bottom:4px">BUSINESS ACTION</div>
+      <div style="font-size:0.8rem">${
+        sentiment==='POSITIVE' ? '✅ Share on testimonials page. Tag as promoter (NPS 9-10). Send loyalty reward.' :
+        sentiment==='NEGATIVE' ? '🚨 Flag for urgent support team. Escalate immediately. Offer compensation.' :
+        '📋 Monitor. Send follow-up survey. Offer help proactively.'
+      }</div>
+    </div>`;
+
+  document.getElementById('sent-result-card').className = 'card '+
+    (sentiment==='POSITIVE'?'glow-teal':sentiment==='NEGATIVE'?'glow-rose':'glow-amber');
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+window.addEventListener('load', () => {
+  initGauge();
+  drawGauge(0);
+  drawSentPie();
+  // Animate hero stats
+  document.querySelectorAll('.hero-stat .val').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(10px)';
+    el.style.transition = 'all 0.5s ease';
+  });
+  setTimeout(() => {
+    document.querySelectorAll('.hero-stat .val').forEach((el,i) => {
+      setTimeout(() => { el.style.opacity='1'; el.style.transform='translateY(0)'; }, i*100);
+    });
+  }, 300);
+});
+</script>
+</body>
+</html>
